@@ -1,0 +1,2 @@
+student1,Fairuz,Nik Mohamad Fairuz,26012282,Computer Science,1,130
+student2,Aqil,Nik Mohamad Aqil,26012283,Chemical Engineering,1,150
