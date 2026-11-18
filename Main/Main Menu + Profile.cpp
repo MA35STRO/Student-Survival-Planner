@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <cstdlib>
+#include <iomanip>
 using namespace std;
 
 struct Student {
@@ -14,7 +15,21 @@ struct Student {
     int semester;
     double weeklyBudget;
 };
+struct Expense{
+	string studentID;
+	string description;
+	string category;
+	double amount;
+	string date;
+};
 // tambah untuk yang lain ii @ buat struct baru
+
+//Function prototypes
+void createAccount();
+bool login(Student &currentStudent);
+void mainMenu(Student currentStudent);
+void addExpense(const Student &currentStudent);
+void dailyExpense (const Student &currentStudent);
 
 void createAccount() {
     Student student;
@@ -108,6 +123,137 @@ bool login(Student &currentStudent) {
     return false;
 }
 
+void addExpense(const Student &currentStudent){
+	Expense exp;
+	exp.studentID = currentStudent.studentID;
+	
+	system("cls");
+	cout << "\n========== ADD NEW EXPENSE ==========\n";
+	
+	cin.ignore();
+	
+	cout << "Enter Expense Description (e.g, Lunch, Bus Fare): ";
+	getline(cin, exp.description);
+	
+	cout << "Enter amount(RM): ";
+	while(!(cin >> exp.amount) || exp.amount<0){
+		cout << "ERROR! Invalid Input! Please Enter a Positive Number (RM): ";
+		cin.ignore();
+		cin.clear(1000, '\n');
+	}
+	
+	cout << "\nEnter Category\n";
+	cout << "1. Food\n";
+	cout << "2. Transportation\n";
+	cout << "3. Entertainment\n";
+	cout << "4. Study\n";
+	cout << "5. Others\n";
+	
+	int categoryChoice;
+	cout << "Enter Choice (1-5): ";
+	while(!(cin >> categoryChoice) || categoryChoice < 1 || categoryChoice > 5){
+		cout << "ERROR! Invalid Input! Please enter a number within the range of 1-5";
+		cin.ignore();
+		cin.clear(1000, '\n');
+	}
+	
+	switch(categoryChoice){
+		case 1:
+			exp.category = "Food";
+			break;
+		
+		case 2:
+			exp.category = "Transportation";
+			break;
+		
+		case 3:
+			exp.category = "Entertainment";
+			break;
+			
+		case 4:
+			exp.category = "Study";
+			break
+		
+		default:
+			exp.category = "Others";
+			break;
+	}
+	
+	cin.ignore();
+	cout << "Enter Date (DD/MM/YYYY): ";
+	getline(cin, exp.date);
+	
+	//sambung file untuk addexpense
+}
+
+
+void displayExpense(const Student &currentStudent){
+	system("cls");
+	cout << "\n=========================================================================\n";
+	cout << "                              EXPENSE LIST                                 \n";
+	cout << "\n=========================================================================\n";
+	
+	ifstream file("expense.txt");
+	string line;
+	bool found = false;
+	double totalExpense = 0.0;
+	int count = 1;
+	
+	if (!file.is_open()){
+		cout << "\nNo expense recorded yet.";
+		cout << "=========================================================================\n";
+	}
+	else{
+		cout << left << setw(5) << "No." 
+             << setw(20) << "Description" 
+             << setw(18) << "Category" 
+             << setw(15) << "Amount" 
+             << setw(12) << "Date" << endl;
+        cout << "-------------------------------------------------------------------------\n";
+        
+        string amtStr;
+        Expense exp;
+        
+        while(getline(file, exp.studentID, ',') &&
+			  getline(file, exp.description, ',') &&
+			  getline(file, exp.category, ',') &&
+			  getline(file, exp.amtStr, ',') &&
+			  getline(file, exp.date, ',')){
+			  	
+			if (exp.studentID == currentStudent.studentID){
+				exp.amount == stood(amdStr); //change amount string to double
+				cout << left << setw(5) << count++
+                     << setw(20) << exp.description
+                     << setw(18) << exp.category
+                     << "RM " << right << setw(10) << fixed << setprecision(2) << exp.amount
+                     << left << setw(2) << "" 
+                     << setw(12) << exp.date << endl;
+                totalExpense += exp.amount;
+                found = true;
+			}
+		}
+	file.close();
+	
+	if(!found){
+		system("cls");
+		cout << "\n=========================================================================\n";
+        cout << "                              EXPENSE LIST                                 \n";
+        cout << "=========================================================================\n";
+        cout << "\nNo expenses recorded for your account yet.\n";
+	}
+	else{
+		cout << "-------------------------------------------------------------------------\n";
+        cout << "Total Expenses: RM " << fixed << setprecision(2) << totalExpense << endl;
+        cout << "Weekly Budget : RM " << fixed << setprecision(2) << currentStudent.weeklyBudget << endl;
+        cout << "Remaining     : RM " << fixed << setprecision(2) << (currentStudent.weeklyBudget - totalExpense) << endl;
+	}
+	}
+	cout << "=========================================================================\n";
+    cout << "\nPress Enter to return to the main menu...";
+    cin.ignore();
+    cin.get();
+}
+
 void mainMenu(Student currentStudent) {
     int choice;
 
@@ -141,15 +287,11 @@ void mainMenu(Student currentStudent) {
                 break;
 
             case 2:
-                system("cls");
-                cout << "\nAdd Expense selected.\n";
-                //sambung @ buat function baru
+                addExpense(currentStudent);
                 break;
 
             case 3:
-                system("cls");
-                cout << "\nView Expenses selected.\n";
-                //sambung @ buat function baru
+                displayExpense(currentStudent);
                 break;
 
             case 4:
