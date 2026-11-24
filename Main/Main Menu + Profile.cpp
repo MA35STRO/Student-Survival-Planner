@@ -29,7 +29,7 @@ void createAccount();
 bool login(Student &currentStudent);
 void mainMenu(Student currentStudent);
 void addExpense(const Student &currentStudent);
-void dailyExpense (const Student &currentStudent);
+void displayExpense(const Student &currentStudent);
 
 void createAccount() {
     Student student;
@@ -136,10 +136,12 @@ void addExpense(const Student &currentStudent){
 	getline(cin, exp.description);
 	
 	cout << "Enter amount(RM): ";
-	while(!(cin >> exp.amount) || exp.amount<0){
+	cin >> exp.amount;
+	while(exp.amount<0){
 		cout << "ERROR! Invalid Input! Please Enter a Positive Number (RM): ";
-		cin.ignore();
-		cin.clear(1000, '\n');
+		cin.clear();
+		cin.ignore(1000, '\n');
+		cin >> exp.amount;
 	}
 	
 	cout << "\nEnter Category\n";
@@ -151,10 +153,12 @@ void addExpense(const Student &currentStudent){
 	
 	int categoryChoice;
 	cout << "Enter Choice (1-5): ";
-	while(!(cin >> categoryChoice) || categoryChoice < 1 || categoryChoice > 5){
+	cin >> categoryChoice;
+	while(categoryChoice < 1 || categoryChoice > 5){
 		cout << "ERROR! Invalid Input! Please enter a number within the range of 1-5";
-		cin.ignore();
-		cin.clear(1000, '\n');
+		cin.clear();
+		cin.ignore(1000, '\n');
+		cin >> categoryChoice;
 	}
 	
 	switch(categoryChoice){
@@ -172,7 +176,7 @@ void addExpense(const Student &currentStudent){
 			
 		case 4:
 			exp.category = "Study";
-			break
+			break;
 		
 		default:
 			exp.category = "Others";
@@ -211,25 +215,31 @@ void displayExpense(const Student &currentStudent){
              << setw(12) << "Date" << endl;
         cout << "-------------------------------------------------------------------------\n";
         
+        
+        string line;
         string amtStr;
         Expense exp;
         
-        while(getline(file, exp.studentID, ',') &&
-			  getline(file, exp.description, ',') &&
-			  getline(file, exp.category, ',') &&
-			  getline(file, exp.amtStr, ',') &&
-			  getline(file, exp.date, ',')){
+        while (getline(file, line)){
+        	stringstream ss(line);
+        
+        	if (getline(ss, exp.studentID, ',') &&
+			  	getline(ss, exp.description, ',') &&
+			  	getline(ss, exp.category, ',') &&
+			  	getline(ss, exp.amtStr, ',') &&
+			  	getline(ss, exp.date)){
 			  	
-			if (exp.studentID == currentStudent.studentID){
-				exp.amount == stood(amdStr); //change amount string to double
-				cout << left << setw(5) << count++
-                     << setw(20) << exp.description
-                     << setw(18) << exp.category
-                     << "RM " << right << setw(10) << fixed << setprecision(2) << exp.amount
-                     << left << setw(2) << "" 
-                     << setw(12) << exp.date << endl;
-                totalExpense += exp.amount;
-                found = true;
+				if (exp.studentID == currentStudent.studentID){
+					exp.amount = stod(amtStr); //change amount string to double
+					cout << left << setw(5) << count++
+                     	<< setw(20) << exp.description
+                     	<< setw(18) << exp.category
+                     	<< "RM " << right << setw(10) << fixed << setprecision(2) << exp.amount
+                     	<< left << setw(2) << "" 
+                     	<< setw(12) << exp.date << endl;
+                	totalExpense += exp.amount;
+                	found = true;
+				}
 			}
 		}
 	file.close();
