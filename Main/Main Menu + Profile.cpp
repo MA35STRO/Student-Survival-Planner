@@ -22,7 +22,31 @@ struct Expense{
 	double amount;
 	string date;
 };
-// tambah untuk yang lain ii @ buat struct baru
+
+struct Task {
+    string studentID;
+    string title;
+    string dueDate;
+    string priority;
+    string status;
+};
+
+// Arrays that hold the logged-in student's data while the program runs.
+// loadData() fills them from the text files, saveData() writes them back.
+const int MAX_EXPENSES = 100;
+const int MAX_TASKS = 50;
+
+Expense expenses[MAX_EXPENSES];
+Task tasks[MAX_TASKS];
+
+int expenseCount = 0;
+int taskCount = 0;
+
+double weeklyBudget = 150.00; // replaced by the student's own budget in loadData()
+
+// File names used for storage
+const string EXPENSE_FILE = "expense.txt";
+const string TASK_FILE = "tasks.txt";
 
 //Function prototypes
 void createAccount();
@@ -30,6 +54,36 @@ bool login(Student &currentStudent);
 void mainMenu(Student currentStudent);
 void addExpense(const Student &currentStudent);
 void displayExpense(const Student &currentStudent);
+void calculateBudget();
+void addTask(const Student &currentStudent);
+void saveData(const Student &currentStudent);
+void loadData(const Student &currentStudent);
+
+// Called when cin fails (e.g. user typed a letter where a number was expected).
+// Resets cin and throws away the bad input so the program doesn't loop forever.
+void clearBadInput() {
+    cin.clear();
+    cin.ignore(1000, '\n');
+}
+
+// Returns true if the username is already used in accounts.txt
+bool usernameExists(const string &username) {
+    ifstream accFile("accounts.txt");
+    string line, savedUsername;
+
+    while (getline(accFile, line)) {
+        stringstream ss(line);
+        getline(ss, savedUsername, ',');
+
+        if (savedUsername == username) {
+            accFile.close();
+            return true;
+        }
+    }
+
+    accFile.close();
+    return false;
+}
 
 void createAccount() {
     Student student;
@@ -38,6 +92,11 @@ void createAccount() {
     cout << "\n========== CREATE ACCOUNT ==========\n";
     cout << "Username: ";
     cin >> student.username;
+
+    while (usernameExists(student.username)) {
+        cout << "Username already taken. Please choose another: ";
+        cin >> student.username;
+    }
 
     cout << "Password: ";
     cin >> student.password;
@@ -54,10 +113,16 @@ void createAccount() {
     getline(cin, student.programme);
 
     cout << "Semester: ";
-    cin >> student.semester;
+    while (!(cin >> student.semester) || student.semester < 1) {
+        cout << "Invalid input! Please enter a valid semester number: ";
+        clearBadInput();
+    }
 
     cout << "Weekly Budget (RM): ";
-    cin >> student.weeklyBudget;
+    while (!(cin >> student.weeklyBudget) || student.weeklyBudget < 0) {
+        cout << "Invalid input! Please enter a positive amount (RM): ";
+        clearBadInput();
+    }
 
     ofstream createAcc("accounts.txt", ios::app); // ios :: app - so it add new data & does not overwrite existing data
 
@@ -98,16 +163,19 @@ bool login(Student &currentStudent) {
         Student student; //hold student info from file
         string semester, budget; //getline read as string
 
-        getline(ss, student.username, ',');
-        getline(ss, student.password, ',');
-        getline(ss, student.name, ',');
-        getline(ss, student.studentID, ',');
-        getline(ss, student.programme, ',');
-        getline(ss, semester, ',');
-        getline(ss, budget);
+        // skip blank or broken lines instead of crashing
+        if (!(getline(ss, student.username, ',') &&
+              getline(ss, student.password, ',') &&
+              getline(ss, student.name, ',') &&
+              getline(ss, student.studentID, ',') &&
+              getline(ss, student.programme, ',') &&
+              getline(ss, semester, ',') &&
+              getline(ss, budget))) {
+            continue;
+        }
 
-        student.semester = stoi(semester); //convert back to original
-        student.weeklyBudget = stod(budget);
+        student.semester = atoi(semester.c_str()); //convert back to original (no crash on bad text)
+        student.weeklyBudget = atof(budget.c_str());
 
         if (username == student.username && password == student.password) {
             currentStudent = student; //copy specific student info to currentStudent
@@ -136,12 +204,10 @@ void addExpense(const Student &currentStudent){
 	getline(cin, exp.description);
 	
 	cout << "Enter amount(RM): ";
-	cin >> exp.amount;
-	while(exp.amount<0){
+	while(!(cin >> exp.amount) || exp.amount<0){   // also catches letters
 		cout << "ERROR! Invalid Input! Please Enter a Positive Number (RM): ";
 		cin.clear();
 		cin.ignore(1000, '\n');
-		cin >> exp.amount;
 	}
 	
 	cout << "\nEnter Category\n";
@@ -153,12 +219,10 @@ void addExpense(const Student &currentStudent){
 	
 	int categoryChoice;
 	cout << "Enter Choice (1-5): ";
-	cin >> categoryChoice;
-	while(categoryChoice < 1 || categoryChoice > 5){
-		cout << "ERROR! Invalid Input! Please enter a number within the range of 1-5";
+	while(!(cin >> categoryChoice) || categoryChoice < 1 || categoryChoice > 5){
+		cout << "ERROR! Invalid Input! Please enter a number within the range of 1-5: ";
 		cin.clear();
 		cin.ignore(1000, '\n');
-		cin >> categoryChoice;
 	}
 	
 	switch(categoryChoice){
@@ -186,8 +250,20 @@ void addExpense(const Student &currentStudent){
 	cin.ignore();
 	cout << "Enter Date (DD/MM/YYYY): ";
 	getline(cin, exp.date);
-	
-	//sambung file untuk addexpense
+
+	// Store the expense in the array, then save it to file
+	if (expenseCount >= MAX_EXPENSES){
+		cout << "\nExpense storage is full! Expense not saved.\n";
+	}
+	else{
+		expenses[expenseCount] = exp;
+		expenseCount++;
+		saveData(currentStudent);
+		cout << "\nExpense successfully added!\n";
+	}
+
+	cout << "\nPress Enter to return to the main menu...";
+	cin.get();
 }
 
 
@@ -204,7 +280,7 @@ void displayExpense(const Student &currentStudent){
 	int count = 1;
 	
 	if (!file.is_open()){
-		cout << "\nNo expense recorded yet.";
+		cout << "\nNo expense recorded yet.\n";
 		cout << "=========================================================================\n";
 	}
 	else{
@@ -215,8 +291,7 @@ void displayExpense(const Student &currentStudent){
              << setw(12) << "Date" << endl;
         cout << "-------------------------------------------------------------------------\n";
         
-        
-        string line;
+
         string amtStr;
         Expense exp;
         
@@ -226,7 +301,7 @@ void displayExpense(const Student &currentStudent){
         	if (getline(ss, exp.studentID, ',') &&
 			  	getline(ss, exp.description, ',') &&
 			  	getline(ss, exp.category, ',') &&
-			  	getline(ss, exp.amtStr, ',') &&
+			  	getline(ss, amtStr, ',') &&
 			  	getline(ss, exp.date)){
 			  	
 				if (exp.studentID == currentStudent.studentID){
@@ -264,8 +339,321 @@ void displayExpense(const Student &currentStudent){
     cin.get();
 }
 
+// MODUL : calculateBudget()
+void calculateBudget()
+{
+    double totalSpent = 0;
+    double remainingBudget;
+    double percentage = 0;
+
+    for (int i = 0; i < expenseCount; i++)
+    {
+        totalSpent += expenses[i].amount;
+    }
+
+    remainingBudget = weeklyBudget - totalSpent;
+
+    if (weeklyBudget > 0)   // avoid dividing by zero
+    {
+        percentage = (totalSpent / weeklyBudget) * 100;
+    }
+
+    cout << "\n========== BUDGET ANALYSIS ==========\n";
+
+    cout << fixed << setprecision(2);
+
+    cout << "Weekly Budget   : RM" << weeklyBudget << endl;
+    cout << "Total Spent     : RM" << totalSpent << endl;
+    cout << "Remaining Budget: RM" << remainingBudget << endl;
+
+    cout << "Budget Used     : " << percentage << "%" << endl;
+
+    if (totalSpent > weeklyBudget)
+    {
+        cout << "Status: OVER BUDGET!" << endl;
+        cout << "You have exceeded your budget by RM"
+             << totalSpent - weeklyBudget << endl;
+    }
+    else if (totalSpent == weeklyBudget)
+    {
+        cout << "Status: BUDGET FULLY USED!" << endl;
+    }
+    else
+    {
+        cout << "Status: WITHIN BUDGET" << endl;
+    }
+
+    cout << "=====================================\n";
+}
+
+// MODUL : addTask()
+void addTask(const Student &currentStudent)
+{
+    if (taskCount >= MAX_TASKS)
+    {
+        cout << "\nTask storage is full!\n";
+        cin.ignore(1000, '\n');   // remove the leftover Enter from the menu choice
+        return;
+    }
+
+    cout << "\n========== ADD NEW TASK ==========\n";
+
+    cin.ignore();
+
+    tasks[taskCount].studentID = currentStudent.studentID;
+
+    cout << "Enter task title: ";
+    getline(cin, tasks[taskCount].title);
+
+    cout << "Enter due date (DD/MM/YYYY): ";
+    getline(cin, tasks[taskCount].dueDate);
+
+    cout << "\nSelect Priority:\n";
+    cout << "1. High\n";
+    cout << "2. Medium\n";
+    cout << "3. Low\n";
+
+    int choice;
+
+    cout << "Enter priority: ";
+    if (!(cin >> choice))   // letter typed -> treat as invalid choice
+    {
+        cin.clear();
+        choice = 0;
+    }
+    cin.ignore(1000, '\n');   // remove the rest of the line so the "Press Enter" pause works
+
+    switch (choice)
+    {
+        case 1:
+            tasks[taskCount].priority = "High";
+            break;
+
+        case 2:
+            tasks[taskCount].priority = "Medium";
+            break;
+
+        case 3:
+            tasks[taskCount].priority = "Low";
+            break;
+
+        default:
+            cout << "Invalid choice! Default priority: Medium\n";
+            tasks[taskCount].priority = "Medium";
+    }
+
+    tasks[taskCount].status = "Pending";
+
+    taskCount++;
+
+    saveData(currentStudent);   // keep the new task after the program closes
+
+    cout << "\nTask successfully added!\n";
+
+    cout << "==================================\n";
+}
+
+// Helper for saveData(): reads a file and returns every line that does NOT
+// belong to the given student, so other students' records are not erased.
+string keepOtherStudents(const string &fileName, const string &studentID)
+{
+    ifstream inFile(fileName.c_str());
+    string line, id;
+    string others = "";
+
+    while (getline(inFile, line))
+    {
+        stringstream ss(line);
+        getline(ss, id, ',');   // first field is always the student ID
+
+        if (id != studentID && line != "")
+        {
+            others += line + "\n";
+        }
+    }
+
+    inFile.close();
+    return others;
+}
+
+// Helper for saveData(): makes a text field safe to store in the file.
+// - a comma would split the field in two, so it is replaced with ';'
+// - an empty field is stored as "-" so the line can always be read back
+string cleanField(string text)
+{
+    for (int i = 0; i < (int)text.length(); i++)
+    {
+        if (text[i] == ',')
+        {
+            text[i] = ';';
+        }
+    }
+
+    if (text == "")
+    {
+        text = "-";
+    }
+
+    return text;
+}
+
+// MODUL 7 : File Storage - saveData()
+// Writes the current student's expenses and tasks into the text files.
+// Format (one record per line, comma separated):
+//   expense.txt : studentID,description,category,amount,date
+//   tasks.txt   : studentID,title,dueDate,priority,status
+void saveData(const Student &currentStudent)
+{
+    // 1. Save expenses
+    string otherExpenses = keepOtherStudents(EXPENSE_FILE, currentStudent.studentID);
+
+    ofstream expFile(EXPENSE_FILE.c_str());   // overwrite with updated data
+
+    if (!expFile.is_open())
+    {
+        cout << "\nError: unable to open " << EXPENSE_FILE << " for saving.\n";
+    }
+    else
+    {
+        expFile << otherExpenses;
+
+        for (int i = 0; i < expenseCount; i++)
+        {
+            expFile << cleanField(expenses[i].studentID) << ","
+                    << cleanField(expenses[i].description) << ","
+                    << cleanField(expenses[i].category) << ","
+                    << fixed << setprecision(2) << expenses[i].amount << ","
+                    << cleanField(expenses[i].date) << "\n";
+        }
+
+        expFile.close();
+    }
+
+    // 2. Save tasks
+    string otherTasks = keepOtherStudents(TASK_FILE, currentStudent.studentID);
+
+    ofstream taskFile(TASK_FILE.c_str());
+
+    if (!taskFile.is_open())
+    {
+        cout << "\nError: unable to open " << TASK_FILE << " for saving.\n";
+    }
+    else
+    {
+        taskFile << otherTasks;
+
+        for (int i = 0; i < taskCount; i++)
+        {
+            taskFile << cleanField(tasks[i].studentID) << ","
+                     << cleanField(tasks[i].title) << ","
+                     << cleanField(tasks[i].dueDate) << ","
+                     << cleanField(tasks[i].priority) << ","
+                     << cleanField(tasks[i].status) << "\n";
+        }
+
+        taskFile.close();
+    }
+}
+
+// MODUL 8 : File Handling - loadData()
+// Reads the text files and loads only the logged-in student's records
+// into the expenses[] and tasks[] arrays.
+void loadData(const Student &currentStudent)
+{
+    string line;
+    int skipped = 0;   // records that did not fit in the arrays
+
+    // Start fresh so data from a previous login is not mixed in
+    expenseCount = 0;
+    taskCount = 0;
+    weeklyBudget = currentStudent.weeklyBudget;
+
+    // 1. Load expenses
+    ifstream expFile(EXPENSE_FILE.c_str());
+
+    if (expFile.is_open())   // if the file doesn't exist yet, there is simply no data
+    {
+        while (getline(expFile, line))
+        {
+            stringstream ss(line);
+            Expense exp;
+            string amtStr;
+
+            if (getline(ss, exp.studentID, ',') &&
+                getline(ss, exp.description, ',') &&
+                getline(ss, exp.category, ',') &&
+                getline(ss, amtStr, ','))
+            {
+                getline(ss, exp.date);   // last field, may be empty in old files
+
+                if (exp.studentID == currentStudent.studentID)
+                {
+                    if (expenseCount < MAX_EXPENSES)
+                    {
+                        exp.amount = atof(amtStr.c_str());   // string -> double
+                        expenses[expenseCount] = exp;
+                        expenseCount++;
+                    }
+                    else
+                    {
+                        skipped++;
+                    }
+                }
+            }
+        }
+
+        expFile.close();
+    }
+
+    // 2. Load tasks
+    ifstream taskFile(TASK_FILE.c_str());
+
+    if (taskFile.is_open())
+    {
+        while (getline(taskFile, line))
+        {
+            stringstream ss(line);
+            Task t;
+
+            if (getline(ss, t.studentID, ',') &&
+                getline(ss, t.title, ',') &&
+                getline(ss, t.dueDate, ',') &&
+                getline(ss, t.priority, ','))
+            {
+                getline(ss, t.status);   // last field, may be empty in old files
+
+                if (t.studentID == currentStudent.studentID)
+                {
+                    if (taskCount < MAX_TASKS)
+                    {
+                        tasks[taskCount] = t;
+                        taskCount++;
+                    }
+                    else
+                    {
+                        skipped++;
+                    }
+                }
+            }
+        }
+
+        taskFile.close();
+    }
+
+    if (skipped > 0)
+    {
+        cout << "\nWarning: " << skipped << " saved record(s) could not be loaded "
+             << "because storage is full. They will be removed on the next save.\n";
+        cout << "Press Enter to continue...";
+        cin.ignore();
+        cin.get();
+    }
+}
+
 void mainMenu(Student currentStudent) {
     int choice;
+
+    loadData(currentStudent);   // bring back this student's saved expenses & tasks
 
     do {
         system("cls");
@@ -279,7 +667,10 @@ void mainMenu(Student currentStudent) {
         cout << "6. View Assignments\n";
         cout << "7. Logout\n";
         cout << "Enter choice: ";
-        cin >> choice;
+        if (!(cin >> choice)) { // letter typed -> show "Invalid choice" instead of looping forever
+            clearBadInput();
+            choice = 0;
+        }
 
         switch (choice) {
             case 1:
@@ -306,14 +697,17 @@ void mainMenu(Student currentStudent) {
 
             case 4:
                 system("cls");
-                cout << "\nBudget Analysis selected.\n";
-                //sambung @ buat function baru
+                calculateBudget();
+                cout << "\nPress Enter to return to the main menu...";
+                cin.ignore();
+                cin.get();
                 break;
 
             case 5:
                 system("cls");
-                cout << "\nAdd Assignment selected.\n";
-                //sambung @ buat function baru
+                addTask(currentStudent);
+                cout << "\nPress Enter to return to the main menu...";
+                cin.get();   // addTask() already cleared the input line
                 break;
 
             case 6:
@@ -324,8 +718,8 @@ void mainMenu(Student currentStudent) {
 
             case 7:
                 system("cls");
-                cout << "\nLogging out...\n";
-                //sambung @ buat function baru
+                saveData(currentStudent);   // make sure everything is saved before leaving
+                cout << "\nData saved. Logging out...\n";
                 break;
 
             default:
@@ -349,7 +743,10 @@ int main() {
         cout << "2. Create Account\n";
         cout << "3. Exit\n";
         cout << "Enter choice: ";
-        cin >> choice;
+        if (!(cin >> choice)) { // letter typed -> show "Invalid choice" instead of looping forever
+            clearBadInput();
+            choice = 0;
+        }
 
         switch (choice) {
             case 1:
