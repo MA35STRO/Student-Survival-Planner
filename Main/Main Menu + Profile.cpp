@@ -215,8 +215,12 @@ bool login(Student &currentStudent) {
             getline(ss, semester, ',') &&
             getline(ss, budget)) {
 
-            student.semester = stoi(semester); //convert back to original
-            student.weeklyBudget = stod(budget);
+            //convert back to original (stringstream works on all compilers, incl. Dev-C++)
+            stringstream semStream(semester);
+            semStream >> student.semester;
+
+            stringstream budgetStream(budget);
+            budgetStream >> student.weeklyBudget;
 
             if (username == student.username && password == student.password) {
                 currentStudent = student; //copy specific student info to currentStudent
@@ -317,7 +321,7 @@ void displayExpense(const Student &currentStudent){
 	system("cls");
 	cout << "\n=========================================================================\n";
 	cout << "                              EXPENSE LIST                                 \n";
-	cout << "\n=========================================================================\n";
+	cout << "=========================================================================\n";
 	
 	ifstream file("expense.txt");
 	string line;
@@ -351,7 +355,8 @@ void displayExpense(const Student &currentStudent){
 			  	getline(ss, exp.date)){
 			  	
 				if (exp.studentID == currentStudent.studentID){
-					exp.amount = stod(amtStr); //change amount string to double
+					stringstream amtStream(amtStr); //change amount string to double
+					amtStream >> exp.amount;
 					cout << left << setw(5) << count++
                      	<< setw(20) << exp.description
                      	<< setw(18) << exp.category
@@ -580,7 +585,7 @@ void viewTasks(const Student &currentStudent)
 // belong to the given student, so other students' records are not erased.
 string keepOtherStudents(string fileName, string studentID)
 {
-    ifstream inFile(fileName);
+    ifstream inFile(fileName.c_str());   // .c_str() is needed by older compilers (Dev-C++)
     string line, id;
     string others = "";
 
@@ -630,7 +635,7 @@ void saveData(const Student &currentStudent)
     // 1. Save expenses
     string otherExpenses = keepOtherStudents(EXPENSE_FILE, currentStudent.studentID);
 
-    ofstream expFile(EXPENSE_FILE);   // overwrite with updated data
+    ofstream expFile(EXPENSE_FILE.c_str());   // overwrite with updated data
 
     if (!expFile.is_open())
     {
@@ -655,7 +660,7 @@ void saveData(const Student &currentStudent)
     // 2. Save tasks
     string otherTasks = keepOtherStudents(TASK_FILE, currentStudent.studentID);
 
-    ofstream taskFile(TASK_FILE);
+    ofstream taskFile(TASK_FILE.c_str());
 
     if (!taskFile.is_open())
     {
@@ -692,7 +697,7 @@ void loadData(const Student &currentStudent)
     weeklyBudget = currentStudent.weeklyBudget;
 
     // 1. Load expenses
-    ifstream expFile(EXPENSE_FILE);
+    ifstream expFile(EXPENSE_FILE.c_str());
 
     if (expFile.is_open())   // if the file doesn't exist yet, there is simply no data
     {
@@ -713,7 +718,8 @@ void loadData(const Student &currentStudent)
                 {
                     if (expenseCount < MAX_EXPENSES)
                     {
-                        exp.amount = stod(amtStr);   // string -> double
+                        stringstream amtStream(amtStr);   // string -> double
+                        amtStream >> exp.amount;
                         expenses[expenseCount] = exp;
                         expenseCount++;
                     }
@@ -729,7 +735,7 @@ void loadData(const Student &currentStudent)
     }
 
     // 2. Load tasks
-    ifstream taskFile(TASK_FILE);
+    ifstream taskFile(TASK_FILE.c_str());
 
     if (taskFile.is_open())
     {
@@ -805,7 +811,7 @@ void mainMenu(Student currentStudent) {
                 cout << "Student ID: " << currentStudent.studentID << endl;
                 cout << "Programme: " << currentStudent.programme << endl;
                 cout << "Semester: " << currentStudent.semester << endl;
-                cout << "Weekly Budget: RM" << currentStudent.weeklyBudget << endl;
+                cout << "Weekly Budget: RM" << fixed << setprecision(2) << currentStudent.weeklyBudget << endl;
 
                 cout<< "\nPress Enter to return to the main menu...";
                 cin.ignore();
