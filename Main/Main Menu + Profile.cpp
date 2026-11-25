@@ -56,6 +56,7 @@ void addExpense(const Student &currentStudent);
 void displayExpense(const Student &currentStudent);
 void calculateBudget();
 void addTask(const Student &currentStudent);
+void viewTasks(const Student &currentStudent);
 void saveData(const Student &currentStudent);
 void loadData(const Student &currentStudent);
 
@@ -66,8 +67,19 @@ void clearBadInput() {
     cin.ignore(1000, '\n');
 }
 
+// Returns true if the text contains a comma.
+// Commas are used to separate fields in the text files, so they are not allowed.
+bool hasComma(string text) {
+    for (int i = 0; i < text.length(); i++) {
+        if (text[i] == ',') {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Returns true if the username is already used in accounts.txt
-bool usernameExists(const string &username) {
+bool usernameExists(string username) {
     ifstream accFile("accounts.txt");
     string line, savedUsername;
 
@@ -93,35 +105,66 @@ void createAccount() {
     cout << "Username: ";
     cin >> student.username;
 
-    while (usernameExists(student.username)) {
-        cout << "Username already taken. Please choose another: ";
+    while (hasComma(student.username) || usernameExists(student.username)) {
+        if (hasComma(student.username)) {
+            cout << "Commas are not allowed. Please enter another username: ";
+        }
+        else {
+            cout << "Username already taken. Please choose another: ";
+        }
         cin >> student.username;
     }
 
     cout << "Password: ";
     cin >> student.password;
 
+    while (hasComma(student.password)) {
+        cout << "Commas are not allowed. Please enter another password: ";
+        cin >> student.password;
+    }
+
     cin.ignore();
 
     cout << "Full Name: ";
     getline(cin, student.name);
 
+    while (hasComma(student.name)) {
+        cout << "Commas are not allowed. Please enter your full name again: ";
+        getline(cin, student.name);
+    }
+
     cout << "Student ID: ";
     getline(cin, student.studentID);
+
+    while (hasComma(student.studentID)) {
+        cout << "Commas are not allowed. Please enter your student ID again: ";
+        getline(cin, student.studentID);
+    }
 
     cout << "Programme: ";
     getline(cin, student.programme);
 
+    while (hasComma(student.programme)) {
+        cout << "Commas are not allowed. Please enter your programme again: ";
+        getline(cin, student.programme);
+    }
+
     cout << "Semester: ";
-    while (!(cin >> student.semester) || student.semester < 1) {
-        cout << "Invalid input! Please enter a valid semester number: ";
+    cin >> student.semester;
+
+    while (cin.fail() || student.semester < 1) {
         clearBadInput();
+        cout << "Invalid input! Please enter a valid semester number: ";
+        cin >> student.semester;
     }
 
     cout << "Weekly Budget (RM): ";
-    while (!(cin >> student.weeklyBudget) || student.weeklyBudget < 0) {
-        cout << "Invalid input! Please enter a positive amount (RM): ";
+    cin >> student.weeklyBudget;
+
+    while (cin.fail() || student.weeklyBudget < 0) {
         clearBadInput();
+        cout << "Invalid input! Please enter a positive amount (RM): ";
+        cin >> student.weeklyBudget;
     }
 
     ofstream createAcc("accounts.txt", ios::app); // ios :: app - so it add new data & does not overwrite existing data
@@ -163,25 +206,24 @@ bool login(Student &currentStudent) {
         Student student; //hold student info from file
         string semester, budget; //getline read as string
 
-        // skip blank or broken lines instead of crashing
-        if (!(getline(ss, student.username, ',') &&
-              getline(ss, student.password, ',') &&
-              getline(ss, student.name, ',') &&
-              getline(ss, student.studentID, ',') &&
-              getline(ss, student.programme, ',') &&
-              getline(ss, semester, ',') &&
-              getline(ss, budget))) {
-            continue;
-        }
+        // only use the line if all 7 fields were read (blank lines are skipped)
+        if (getline(ss, student.username, ',') &&
+            getline(ss, student.password, ',') &&
+            getline(ss, student.name, ',') &&
+            getline(ss, student.studentID, ',') &&
+            getline(ss, student.programme, ',') &&
+            getline(ss, semester, ',') &&
+            getline(ss, budget)) {
 
-        student.semester = atoi(semester.c_str()); //convert back to original (no crash on bad text)
-        student.weeklyBudget = atof(budget.c_str());
+            student.semester = stoi(semester); //convert back to original
+            student.weeklyBudget = stod(budget);
 
-        if (username == student.username && password == student.password) {
-            currentStudent = student; //copy specific student info to currentStudent
-            createAcc.close();
-            cout << "\nLogin successful!\n";
-            return true;
+            if (username == student.username && password == student.password) {
+                currentStudent = student; //copy specific student info to currentStudent
+                createAcc.close();
+                cout << "\nLogin successful!\n";
+                return true;
+            }
         }
     }
 
@@ -204,10 +246,12 @@ void addExpense(const Student &currentStudent){
 	getline(cin, exp.description);
 	
 	cout << "Enter amount(RM): ";
-	while(!(cin >> exp.amount) || exp.amount<0){   // also catches letters
+	cin >> exp.amount;
+	while(cin.fail() || exp.amount<0){   // cin.fail() is true when letters are typed
 		cout << "ERROR! Invalid Input! Please Enter a Positive Number (RM): ";
 		cin.clear();
 		cin.ignore(1000, '\n');
+		cin >> exp.amount;
 	}
 	
 	cout << "\nEnter Category\n";
@@ -219,10 +263,12 @@ void addExpense(const Student &currentStudent){
 	
 	int categoryChoice;
 	cout << "Enter Choice (1-5): ";
-	while(!(cin >> categoryChoice) || categoryChoice < 1 || categoryChoice > 5){
+	cin >> categoryChoice;
+	while(cin.fail() || categoryChoice < 1 || categoryChoice > 5){
 		cout << "ERROR! Invalid Input! Please enter a number within the range of 1-5: ";
 		cin.clear();
 		cin.ignore(1000, '\n');
+		cin >> categoryChoice;
 	}
 	
 	switch(categoryChoice){
@@ -416,7 +462,9 @@ void addTask(const Student &currentStudent)
     int choice;
 
     cout << "Enter priority: ";
-    if (!(cin >> choice))   // letter typed -> treat as invalid choice
+    cin >> choice;
+
+    if (cin.fail())   // letter typed -> treat as invalid choice
     {
         cin.clear();
         choice = 0;
@@ -453,11 +501,86 @@ void addTask(const Student &currentStudent)
     cout << "==================================\n";
 }
 
+// MODUL : viewTasks() - shows the student's assignments and lets them
+// mark one as Completed
+void viewTasks(const Student &currentStudent)
+{
+    cout << "\n=========================== ASSIGNMENT LIST ===========================\n";
+
+    if (taskCount == 0)
+    {
+        cout << "\nNo assignments recorded yet.\n";
+        cout << "=======================================================================\n";
+        cin.ignore(1000, '\n');   // remove the leftover Enter from the menu choice
+        return;
+    }
+
+    cout << left << setw(5) << "No."
+         << setw(30) << "Title"
+         << setw(14) << "Due Date"
+         << setw(10) << "Priority"
+         << setw(10) << "Status" << endl;
+    cout << "-----------------------------------------------------------------------\n";
+
+    int pendingCount = 0;
+
+    for (int i = 0; i < taskCount; i++)
+    {
+        cout << left << setw(5) << i + 1
+             << setw(30) << tasks[i].title
+             << setw(14) << tasks[i].dueDate
+             << setw(10) << tasks[i].priority
+             << setw(10) << tasks[i].status << endl;
+
+        if (tasks[i].status == "Pending")
+        {
+            pendingCount++;
+        }
+    }
+
+    cout << "-----------------------------------------------------------------------\n";
+    cout << "Total Assignments: " << taskCount << endl;
+    cout << "Pending          : " << pendingCount << endl;
+    cout << "Completed        : " << taskCount - pendingCount << endl;
+    cout << "=======================================================================\n";
+
+    int taskNumber;
+
+    cout << "\nEnter assignment number to mark as Completed (0 to go back): ";
+    cin >> taskNumber;
+
+    if (cin.fail())   // letter typed
+    {
+        cin.clear();
+        taskNumber = -1;
+    }
+    cin.ignore(1000, '\n');   // remove the rest of the line so the "Press Enter" pause works
+
+    if (taskNumber == 0)
+    {
+        return;
+    }
+    else if (taskNumber < 1 || taskNumber > taskCount)
+    {
+        cout << "Invalid assignment number.\n";
+    }
+    else if (tasks[taskNumber - 1].status == "Completed")
+    {
+        cout << "This assignment is already completed.\n";
+    }
+    else
+    {
+        tasks[taskNumber - 1].status = "Completed";
+        saveData(currentStudent);
+        cout << "\"" << tasks[taskNumber - 1].title << "\" marked as Completed!\n";
+    }
+}
+
 // Helper for saveData(): reads a file and returns every line that does NOT
 // belong to the given student, so other students' records are not erased.
-string keepOtherStudents(const string &fileName, const string &studentID)
+string keepOtherStudents(string fileName, string studentID)
 {
-    ifstream inFile(fileName.c_str());
+    ifstream inFile(fileName);
     string line, id;
     string others = "";
 
@@ -481,7 +604,7 @@ string keepOtherStudents(const string &fileName, const string &studentID)
 // - an empty field is stored as "-" so the line can always be read back
 string cleanField(string text)
 {
-    for (int i = 0; i < (int)text.length(); i++)
+    for (int i = 0; i < text.length(); i++)
     {
         if (text[i] == ',')
         {
@@ -507,7 +630,7 @@ void saveData(const Student &currentStudent)
     // 1. Save expenses
     string otherExpenses = keepOtherStudents(EXPENSE_FILE, currentStudent.studentID);
 
-    ofstream expFile(EXPENSE_FILE.c_str());   // overwrite with updated data
+    ofstream expFile(EXPENSE_FILE);   // overwrite with updated data
 
     if (!expFile.is_open())
     {
@@ -532,7 +655,7 @@ void saveData(const Student &currentStudent)
     // 2. Save tasks
     string otherTasks = keepOtherStudents(TASK_FILE, currentStudent.studentID);
 
-    ofstream taskFile(TASK_FILE.c_str());
+    ofstream taskFile(TASK_FILE);
 
     if (!taskFile.is_open())
     {
@@ -569,7 +692,7 @@ void loadData(const Student &currentStudent)
     weeklyBudget = currentStudent.weeklyBudget;
 
     // 1. Load expenses
-    ifstream expFile(EXPENSE_FILE.c_str());
+    ifstream expFile(EXPENSE_FILE);
 
     if (expFile.is_open())   // if the file doesn't exist yet, there is simply no data
     {
@@ -590,7 +713,7 @@ void loadData(const Student &currentStudent)
                 {
                     if (expenseCount < MAX_EXPENSES)
                     {
-                        exp.amount = atof(amtStr.c_str());   // string -> double
+                        exp.amount = stod(amtStr);   // string -> double
                         expenses[expenseCount] = exp;
                         expenseCount++;
                     }
@@ -606,7 +729,7 @@ void loadData(const Student &currentStudent)
     }
 
     // 2. Load tasks
-    ifstream taskFile(TASK_FILE.c_str());
+    ifstream taskFile(TASK_FILE);
 
     if (taskFile.is_open())
     {
@@ -667,7 +790,9 @@ void mainMenu(Student currentStudent) {
         cout << "6. View Assignments\n";
         cout << "7. Logout\n";
         cout << "Enter choice: ";
-        if (!(cin >> choice)) { // letter typed -> show "Invalid choice" instead of looping forever
+        cin >> choice;
+
+        if (cin.fail()) { // letter typed -> show "Invalid choice" instead of looping forever
             clearBadInput();
             choice = 0;
         }
@@ -712,8 +837,9 @@ void mainMenu(Student currentStudent) {
 
             case 6:
                 system("cls");
-                cout << "\nView Assignments selected.\n";
-                //sambung @ buat function baru
+                viewTasks(currentStudent);
+                cout << "\nPress Enter to return to the main menu...";
+                cin.get();   // viewTasks() already cleared the input line
                 break;
 
             case 7:
@@ -743,7 +869,9 @@ int main() {
         cout << "2. Create Account\n";
         cout << "3. Exit\n";
         cout << "Enter choice: ";
-        if (!(cin >> choice)) { // letter typed -> show "Invalid choice" instead of looping forever
+        cin >> choice;
+
+        if (cin.fail()) { // letter typed -> show "Invalid choice" instead of looping forever
             clearBadInput();
             choice = 0;
         }
