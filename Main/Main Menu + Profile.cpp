@@ -215,7 +215,7 @@ bool login(Student &currentStudent) {
             getline(ss, semester, ',') &&
             getline(ss, budget)) {
 
-            //convert back to original (atoi/atof work on Dev-C++ and give 0 instead of crashing on bad text)
+            //convert back to original 
             student.semester = atoi(semester.c_str());
             student.weeklyBudget = atof(budget.c_str());
 
