@@ -215,12 +215,9 @@ bool login(Student &currentStudent) {
             getline(ss, semester, ',') &&
             getline(ss, budget)) {
 
-            //convert back to original (stringstream works on all compilers, incl. Dev-C++)
-            stringstream semStream(semester);
-            semStream >> student.semester;
-
-            stringstream budgetStream(budget);
-            budgetStream >> student.weeklyBudget;
+            //convert back to original (atoi/atof work on Dev-C++ and give 0 instead of crashing on bad text)
+            student.semester = atoi(semester.c_str());
+            student.weeklyBudget = atof(budget.c_str());
 
             if (username == student.username && password == student.password) {
                 currentStudent = student; //copy specific student info to currentStudent
@@ -355,8 +352,7 @@ void displayExpense(const Student &currentStudent){
 			  	getline(ss, exp.date)){
 			  	
 				if (exp.studentID == currentStudent.studentID){
-					stringstream amtStream(amtStr); //change amount string to double
-					amtStream >> exp.amount;
+					exp.amount = atof(amtStr.c_str()); //change amount string to double
 					cout << left << setw(5) << count++
                      	<< setw(20) << exp.description
                      	<< setw(18) << exp.category
@@ -718,8 +714,7 @@ void loadData(const Student &currentStudent)
                 {
                     if (expenseCount < MAX_EXPENSES)
                     {
-                        stringstream amtStream(amtStr);   // string -> double
-                        amtStream >> exp.amount;
+                        exp.amount = atof(amtStr.c_str());   // string -> double
                         expenses[expenseCount] = exp;
                         expenseCount++;
                     }
